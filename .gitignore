@@ -1,0 +1,12 @@
+.vagrant/
+kubeconfig
+k3s.yaml
+*.kubeconfig
+*token*
+*.env
+.env
+secrets/
+*.log
+*.tmp
+*.swp
+*~
