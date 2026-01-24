@@ -9,12 +9,13 @@
 Vagrant.configure("2") do |config|
   config.vm.box = "debian/bullseye64"
   config.vm.box_version = "11.20241217.1"
+  config.vm.box_check_update = false
 
   config.vm.hostname = "bsouharS"
   config.vm.network "private_network", ip: "192.168.56.110"
-  config.vm.network "forwarded_port", guest: 30001, host: 30001
-  config.vm.network "forwarded_port", guest: 30002, host: 30002
-  config.vm.network "forwarded_port", guest: 30003, host: 30003
+  # config.vm.network "forwarded_port", guest: 30001, host: 30001
+  # config.vm.network "forwarded_port", guest: 30002, host: 30002
+  # config.vm.network "forwarded_port", guest: 30003, host: 30003
 
   config.vm.provision "shell", path: "scripts/server.sh"
 
