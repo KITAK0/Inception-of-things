@@ -13,9 +13,6 @@ Vagrant.configure("2") do |config|
 
   config.vm.hostname = "bsouharS"
   config.vm.network "private_network", ip: "192.168.56.110"
-  # config.vm.network "forwarded_port", guest: 30001, host: 30001
-  # config.vm.network "forwarded_port", guest: 30002, host: 30002
-  # config.vm.network "forwarded_port", guest: 30003, host: 30003
 
   config.vm.provision "shell", path: "scripts/server.sh"
 
@@ -23,17 +20,7 @@ Vagrant.configure("2") do |config|
     vb.memory = "1024"
     vb.cpus = 1
   end
-  # config.vm.provider "virtualbox" do |vb|
-  #   vb.memory = "1024"
-  #   vb.cpus = 1
-  # end
-  
-  # config.vm.define "bsouharS" do |server|
-  #   server.vm.hostname = "bsouharS"
-  #   server.vm.network "private_network", ip: "192.168.56.110"
-  #   server.vm.provision "shell", path: "scripts/server.sh"
-  # end
-  end
+end
 
 # Vagrant.configure("2") do |config|
   # The most common configuration options are documented and commented below.
