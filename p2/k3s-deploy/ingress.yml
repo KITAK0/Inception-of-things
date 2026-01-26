@@ -26,7 +26,7 @@ spec:
             port:
               number: 80
 
-  # default → app3
+  # DEFAULT backend → app3
   - http:
       paths:
       - path: /
