@@ -61,7 +61,7 @@ kubectl apply -f ingress.yml
 
 ### 4. Test the Ingress
 
-Now, in your browser (after changing /etc/hosts ) or with `curl`, access:
+Now, in your browser (after changing /etc/hosts for the host machine) or with `curl`, access:
 - http://app1.com → App 1
 - http://app2.com → App 2
 - http://192.168.56.110 or any other host → App 3
