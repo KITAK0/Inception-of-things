@@ -1,0 +1,101 @@
+<!doctype html>
+<html lang="en">
+	<head>
+		<meta charset="utf-8" />
+		<meta name="viewport" content="width=device-width,initial-scale=1" />
+		<title>Inception of Things — GitOps demo</title>
+		<style>
+			:root{--bg:#0b1220;--card:#0f1b2b;--accent:#ffb86b;--muted:#94a3b8}
+			*{box-sizing:border-box}
+			body{margin:0;height:100vh;font-family:Inter,system-ui,Arial;background:linear-gradient(135deg,var(--bg),#071128);color:#e6eef8;display:flex;align-items:center;justify-content:center}
+			.wrap{width:980px;max-width:96%;padding:28px}
+			header{display:flex;justify-content:space-between;align-items:center}
+			h1{margin:0;font-size:20px}
+			.sub{color:var(--muted);font-size:13px}
+			.panel{display:grid;grid-template-columns:1fr 340px;gap:18px;margin-top:18px}
+			.card{background:linear-gradient(180deg,rgba(255,255,255,0.02),rgba(255,255,255,0.01));padding:18px;border-radius:12px;border:1px solid rgba(255,255,255,0.03)}
+			.manifest{background:#071426;padding:12px;border-radius:8px;color:#bfe9d7;font-family:monospace;font-size:13px;overflow:auto;max-height:260px}
+			.controls{display:flex;gap:8px;flex-wrap:wrap}
+			.btn{background:transparent;border:1px solid rgba(255,255,255,0.06);padding:8px 12px;border-radius:8px;color:inherit;cursor:pointer}
+			.status{margin-top:12px;color:var(--muted);font-size:13px}
+			footer{margin-top:12px;text-align:center;color:var(--muted);font-size:13px}
+			@media (max-width:900px){.panel{grid-template-columns:1fr}}
+		</style>
+	</head>
+	<body>
+		<div class="wrap">
+			<header>
+				<div>
+					<h1>Inception of Things</h1>
+					<div class="sub">Kubernetes + GitOps demo — a tiny static app illustrating CI/CD flow (v2)</div>
+				</div>
+				<div class="controls">
+					<button class="btn" id="buildBtn">Simulate Build</button>
+					<button class="btn" id="pushBtn">Simulate Push</button>
+					<button class="btn" id="deployBtn">Simulate Deploy</button>
+				</div>
+			</header>
+
+			<div class="panel">
+				<div class="card">
+					<h3 style="margin:0 0 8px 0">Live Preview</h3>
+					<div style="padding:18px;border-radius:8px;background:linear-gradient(180deg,#071a2a,transparent)">
+						<h2 style="margin:0;color:var(--accent)">Inception of Things</h2>
+						<p style="margin:8px 0;color:var(--muted)">A minimal static app served from a container image and deployed to Kubernetes using a manifest.</p>
+						<div style="margin-top:12px;display:flex;gap:12px;align-items:center">
+							<div style="width:64px;height:64px;border-radius:12px;background:rgba(255,184,107,0.08);display:flex;align-items:center;justify-content:center;font-weight:700;color:var(--accent)">IO</div>
+							<div>
+								<div style="font-weight:600">Image:</div>
+								<div id="imageName" class="sub">bsouhar/inception-of-things:latest</div>
+							</div>
+						</div>
+					</div>
+					<div class="status" id="status">Status: idle</div>
+				</div>
+
+				<div class="card">
+					<h3 style="margin:0 0 8px 0">Kubernetes manifest (deployment)</h3>
+					<div class="manifest" id="manifest">apiVersion: apps/v1
+kind: Deployment
+metadata:
+	name: inception-ui
+	namespace: dev
+spec:
+	replicas: 2
+	selector:
+		matchLabels:
+			app: inception-ui
+	template:
+		metadata:
+			labels:
+				app: inception-ui
+		spec:
+			containers:
+				- name: inception-ui
+					image: REPLACE_WITH_YOUR_DOCKERHUB/inception-of-things:latest
+					ports:
+						- containerPort: 80</div>
+					<div style="margin-top:8px" class="sub">Tip: set your Docker Hub user and run the build/push commands below.</div>
+				</div>
+			</div>
+
+			<footer>Use the commands shown to build, tag, push, and apply the manifest.</footer>
+		</div>
+
+		<script>
+			const statusEl = document.getElementById('status')
+			const imageEl = document.getElementById('imageName')
+			const manifestEl = document.getElementById('manifest')
+
+			function setStatus(s){statusEl.textContent = 'Status: '+s}
+
+			document.getElementById('buildBtn').addEventListener('click',()=>{setStatus('build successful (local)')})
+			document.getElementById('pushBtn').addEventListener('click',()=>{setStatus('image pushed to registry')})
+			document.getElementById('deployBtn').addEventListener('click',()=>{setStatus('manifest applied to cluster')})
+
+			// expose simple helpers for user to update image in-page
+			window.setImage = function(img){imageEl.textContent = img; manifestEl.textContent = manifestEl.textContent.replace(/REPLACE_WITH_YOUR_DOCKERHUB\/inception-of-things:latest/g, img)}
+		</script>
+	</body>
+</html>
+

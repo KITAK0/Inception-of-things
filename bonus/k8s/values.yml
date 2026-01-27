@@ -1,0 +1,69 @@
+# gitlab:
+#   gitlab-shell:
+#     enabled: true
+#     ssh:
+#       port: 22   # optional; can disable if not using SSH
+#   sidekiq:
+#     enabled: true
+# redis:
+#   install: true  # required for Sidekiq
+# postgresql:
+#   enabled: true
+# global:
+#   hosts:
+#     domain: gitlab.localhost
+#     externalIP: 127.0.0.1
+#     https: false
+#   minio:
+#     enabled: false
+# ingress:
+#   enabled: true
+# certmanager:
+#   enabled: false
+# certmanager-issuer:
+#   enabled: false
+#   email: "localhost@localhost"
+
+global:
+  edition: ce
+  hosts:
+    domain: gitlab.localhost
+    externalIP: 127.0.0.1
+    https: false
+  ingress:
+    enabled: true
+  minio:
+    enabled: false
+
+nginx-ingress:
+  enabled: false
+
+gitlab-runner:
+  install: false
+
+certmanager:
+  enabled: false
+certmanager-issuer:
+  enabled: false
+  email: "localhost@localhost"
+
+registry:
+  enabled: false
+prometheus:
+  enabled: false
+
+postgresql:
+  enabled: true
+
+redis:
+  install: true
+
+gitlab:
+  webservice:
+    service:
+      port: 8080
+  sidekiq:
+    enabled: true
+  gitlab-shell:
+    enabled: true
+

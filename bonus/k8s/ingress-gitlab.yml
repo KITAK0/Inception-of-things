@@ -1,0 +1,18 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: gitlab-ingress
+  namespace: gitlab
+spec:
+  ingressClassName: traefik
+  rules:
+    - host: gitlab.localhost
+      http:
+        paths:
+          - path: /
+            pathType: Prefix          # important, not ImplementationSpecific
+            backend:
+              service:
+                name: gitlab-webservice-default
+                port:
+                  number: 8080
