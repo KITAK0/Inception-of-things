@@ -27,7 +27,7 @@ Deploy a containerized web application using:
 
 3. **Application (dev namespace)**
    - Custom web application (Nginx-based)
-   - Deployed from Docker Hub (`bsouhar/my-app:v2`)
+   - Deployed from Docker Hub (`bsouhar/my-app:v1`)
    - Managed by Argo CD Application resource
    - Exposed via Traefik Ingress at `my-app.localhost`
 
@@ -43,7 +43,7 @@ Git Repository (GitHub)
   Application deployed in dev namespace
 ```
 
-Argo CD monitors the `deploy` branch of the repository and automatically applies any changes to the Kubernetes manifests in the `p3/k8s` directory.
+Argo CD monitors the `deploy` branch of the repository and automatically applies any changes to the Kubernetes manifests in the `p3/confs` directory.
 
 ## Project Structure
 
@@ -52,13 +52,15 @@ p3/
 ├── app/
 │   ├── Dockerfile           # Application container image
 │   └── index.html           # Web application content
-└── k8s/
-    ├── argocd-app.yml       # Argo CD Application resource
-    ├── deployment.yml       # Application deployment
-    ├── service.yml          # ClusterIP service
-    ├── ingress.yml          # Traefik Ingress for the app
-    ├── ingress-argocd.yml   # Traefik Ingress for Argo CD
-    └── namespaces.yml       # dev namespace definition
+├── confs/
+│   ├── argocd-app.yml       # Argo CD Application resource
+│   ├── deployment.yml       # Application deployment
+│   ├── service.yml          # ClusterIP service
+│   ├── ingress.yml          # Traefik Ingress for the app
+│   ├── ingress-argocd.yml   # Traefik Ingress for Argo CD
+│   └── namespaces.yml       # dev namespace definition
+└── scripts/
+    └── setup.sh             # Automated setup script
 ```
 
 ## Exposure Method: Traefik Ingress
@@ -109,7 +111,21 @@ kubectl version --client
 
 ## Step-by-Step Instructions
 
-### 1. Create the k3d Cluster
+### Quick Setup (Recommended)
+
+Run the automated setup script:
+
+```bash
+cd p3
+chmod +x scripts/setup.sh
+./scripts/setup.sh
+```
+
+This installs all dependencies and sets up the entire infrastructure.
+
+### Manual Setup
+
+#### 1. Create the k3d Cluster
 
 Create a k3d cluster with port 80 exposed for Ingress:
 
@@ -159,10 +175,10 @@ kubectl rollout status deployment/argocd-server -n argocd
 
 ### 4. Apply Kubernetes Manifests
 
-Navigate to the k8s directory and apply all manifests:
+Navigate to the confs directory and apply all manifests:
 
 ```bash
-cd p3/k8s
+cd p3/confs
 
 # Create the dev namespace
 kubectl apply -f namespaces.yml
@@ -252,7 +268,7 @@ In the Argo CD UI, you should see your application synced and healthy.
 
 Once deployed, Argo CD continuously monitors your Git repository:
 
-- Any changes to manifests in `p3/k8s` on the `deploy` branch are automatically detected
+- Any changes to manifests in `p3/confs` on the `deploy` branch are automatically detected
 - Argo CD syncs the changes to the cluster (if `automated` sync is enabled)
 - The application is updated without manual intervention
 

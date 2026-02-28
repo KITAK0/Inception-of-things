@@ -1,325 +1,231 @@
-# Inception of Things - Part 3
+# Inception of Things - Bonus: GitLab Integration
 
-## Project Overview
+## Overview
 
-Part 3 demonstrates deploying an application using **GitOps** principles with **Argo CD** on a local Kubernetes cluster. This setup showcases continuous deployment where Argo CD automatically syncs your application from a Git repository to your cluster.
-
-## Goal
-
-Deploy a containerized web application using:
-- **k3d**: A lightweight Kubernetes distribution (k3s) running in Docker
-- **Argo CD**: A declarative GitOps continuous delivery tool
-- **Traefik Ingress**: For HTTP routing without port-forwarding or NodePort
-- **GitOps workflow**: Application state managed via Git repository
+The bonus part extends Part 3 by replacing the remote GitHub repository with a **local GitLab instance** running inside the same Kubernetes cluster. This demonstrates a fully self-contained GitOps pipeline where everything runs locally.
 
 ## Architecture
 
-### Components
-
-1. **k3d Cluster**
-   - Lightweight Kubernetes cluster running locally
-   - Port 80 exposed for HTTP traffic
-
-2. **Argo CD (argocd namespace)**
-   - Deployed in its own namespace for separation
-   - Runs in insecure (HTTP) mode for local development
-   - Exposed via Traefik Ingress at `argocd.localhost`
-
-3. **Application (dev namespace)**
-   - Custom web application (Nginx-based)
-   - Deployed from Docker Hub (`bsouhar/my-app:v2`)
-   - Managed by Argo CD Application resource
-   - Exposed via Traefik Ingress at `my-app.localhost`
-
-### GitOps Workflow
-
 ```
-Git Repository (GitHub)
-        ↓
-  Argo CD watches for changes
-        ↓
-  Automatically syncs to cluster
-        ↓
-  Application deployed in dev namespace
+┌─────────────────────────────────────────────────────────┐
+│                   k3d Cluster (iot-bonus)                │
+│                                                         │
+│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐  │
+│  │   gitlab NS   │  │  argocd NS   │  │    dev NS    │  │
+│  │               │  │              │  │              │  │
+│  │  GitLab CE    │  │  Argo CD     │  │  my-app      │  │
+│  │  (Helm)       │──│  (watches    │──│  (deployed   │  │
+│  │               │  │   GitLab)    │  │   by ArgoCD) │  │
+│  └──────────────┘  └──────────────┘  └──────────────┘  │
+│                                                         │
+│  Traefik Ingress Controller                             │
+│  ├── gitlab.localhost  → GitLab UI                      │
+│  ├── argocd.localhost  → Argo CD UI                     │
+│  └── my-app.localhost  → Application                    │
+└─────────────────────────────────────────────────────────┘
 ```
 
-Argo CD monitors the `deploy` branch of the repository and automatically applies any changes to the Kubernetes manifests in the `p3/k8s` directory.
+## Components
+
+| Component | Namespace | Purpose |
+|-----------|-----------|---------|
+| **GitLab CE** | `gitlab` | Local Git repository server (latest Helm chart) |
+| **Argo CD** | `argocd` | GitOps continuous delivery |
+| **Application** | `dev` | The deployed web application |
 
 ## Project Structure
 
 ```
-p3/
+bonus/
+├── README.md
 ├── app/
-│   ├── Dockerfile           # Application container image
-│   └── index.html           # Web application content
-└── k8s/
-    ├── argocd-app.yml       # Argo CD Application resource
-    ├── deployment.yml       # Application deployment
-    ├── service.yml          # ClusterIP service
-    ├── ingress.yml          # Traefik Ingress for the app
-    ├── ingress-argocd.yml   # Traefik Ingress for Argo CD
-    └── namespaces.yml       # dev namespace definition
+│   ├── Dockerfile           # Application Docker image
+│   └── index.html           # Application content
+├── confs/
+│   ├── argocd-app.yml       # Argo CD Application (points to local GitLab)
+│   ├── deployment.yml       # Application deployment manifest
+│   ├── service.yml          # ClusterIP service
+│   ├── ingress.yml          # Traefik Ingress for the app
+│   ├── ingress-argocd.yml   # Traefik Ingress for Argo CD
+│   ├── ingress-gitlab.yml   # Traefik Ingress for GitLab
+│   ├── namespaces.yml       # dev, gitlab, argocd namespaces
+│   └── values.yml           # Helm values for GitLab CE
+└── scripts/
+    └── setup.sh             # Automated setup script
 ```
-
-## Exposure Method: Traefik Ingress
-
-This setup uses **Traefik Ingress Controller** (built into k3s) for routing HTTP traffic:
-
-- **No port-forwarding**: Direct access via standard HTTP (port 80)
-- **No NodePort**: Uses ClusterIP services with Ingress
-- **Host-based routing**: Different hostnames route to different services
-  - `argocd.localhost` → Argo CD UI
-  - `my-app.localhost` → Your application
-
-### Why This Is Better
-
-- **Production-ready pattern**: Ingress is the standard way to expose services in Kubernetes
-- **Clean URLs**: Use domain names instead of ports
-- **Single entry point**: All traffic goes through port 80
-- **Scalability**: Easy to add more applications with different hostnames
-- **SSL/TLS ready**: In production, Ingress handles TLS termination
-
-## Why Argo CD Runs in Insecure (HTTP) Mode
-
-Argo CD is configured to run without TLS for this local development setup:
-
-1. **Simplicity**: No need to generate or manage certificates locally
-2. **Local development**: Running on `localhost` doesn't require encryption
-3. **Production pattern**: In production, TLS termination is handled at the Ingress level, not by Argo CD itself
-4. **Compliance**: Meets the project requirements while following Kubernetes best practices
-
-The `--insecure` flag disables Argo CD's internal TLS, allowing it to serve HTTP traffic behind the Traefik Ingress.
 
 ## Prerequisites
 
-- **Docker**: For running k3d
-- **k3d**: Lightweight Kubernetes in Docker
-- **kubectl**: Kubernetes CLI tool
+- **Docker**: Required for k3d
+- **8+ GB RAM** recommended (GitLab is resource-intensive)
+- **Linux** system or VM
 
-Install k3d:
+## Quick Start
+
+### Automated Setup
+
 ```bash
-curl -s https://raw.githubusercontent.com/k3d-io/k3d/main/install.sh | bash
+cd bonus
+chmod +x scripts/setup.sh
+./scripts/setup.sh
 ```
 
-Verify installation:
-```bash
-k3d --version
-kubectl version --client
-```
+The script will install all dependencies (Docker, kubectl, k3d, Helm) and set up the full infrastructure.
 
-## Step-by-Step Instructions
+### Manual Setup
 
-### 1. Create the k3d Cluster
-
-Create a k3d cluster with port 80 exposed for Ingress:
+#### 1. Create Cluster
 
 ```bash
-k3d cluster create iot-cluster \
+k3d cluster create iot-bonus \
   -p "80:80@loadbalancer" \
+  -p "8888:8888@loadbalancer" \
   --agents 2
 ```
 
-This creates a cluster named `iot-cluster` with 1 server node and 2 agent nodes, mapping port 80 from your host to the cluster's load balancer.
-
-Verify the cluster:
-```bash
-kubectl get nodes
-```
-
-### 2. Install Argo CD
-
-Create the Argo CD namespace and install Argo CD:
+#### 2. Create Namespaces
 
 ```bash
-kubectl create namespace argocd
-kubectl apply -n argocd -f https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/install.yaml
+kubectl apply -f confs/namespaces.yml
 ```
 
-Wait for Argo CD to be ready:
-```bash
-kubectl wait --for=condition=available --timeout=300s deployment/argocd-server -n argocd
-```
-
-### 3. Configure Argo CD for Insecure Mode
-
-Patch the Argo CD server to run in insecure mode and set the external URL:
+#### 3. Install GitLab via Helm
 
 ```bash
-kubectl patch deployment argocd-server -n argocd --type='json' \
-  -p='[{"op": "add", "path": "/spec/template/spec/containers/0/args/-", "value": "--insecure"}]'
-
-kubectl patch configmap argocd-cmd-params-cm -n argocd \
-  --type merge -p '{"data":{"server.insecure":"true"}}'
+helm repo add gitlab https://charts.gitlab.io/
+helm repo update
+helm install gitlab gitlab/gitlab \
+  -n gitlab \
+  -f confs/values.yml \
+  --timeout 600s
 ```
 
-Wait for the server to restart:
-```bash
-kubectl rollout status deployment/argocd-server -n argocd
-```
-
-### 4. Apply Kubernetes Manifests
-
-Navigate to the k8s directory and apply all manifests:
+Wait for GitLab to start (can take 5-10 minutes):
 
 ```bash
-cd p3/k8s
-
-# Create the dev namespace
-kubectl apply -f namespaces.yml
-
-# Create Ingress for Argo CD
-kubectl apply -f ingress-argocd.yml
-
-# Create the Argo CD Application (this will deploy your app)
-kubectl apply -f argocd-app.yml
+kubectl get pods -n gitlab -w
 ```
 
-**Note**: You don't need to manually apply `deployment.yml`, `service.yml`, or `ingress.yml` because Argo CD will automatically deploy them from the Git repository.
-
-### 5. Get Argo CD Admin Password
-
-Retrieve the initial admin password:
+#### 4. Install Argo CD
 
 ```bash
-kubectl -n argocd get secret argocd-initial-admin-secret \
-  -o jsonpath="{.data.password}" | base64 --decode && echo
-```
-
-### 6. Update /etc/hosts
-
-Add the following entries to your `/etc/hosts` file:
-
-```bash
-sudo nano /etc/hosts
-```
-
-Add these lines:
-```
-127.0.0.1 argocd.localhost
-127.0.0.1 my-app.localhost
-```
-
-Save and exit.
-
-### 7. Access the Applications
-
-**Argo CD UI:**
-- URL: http://argocd.localhost
-- Username: `admin`
-- Password: (from step 5)
-
-**Your Application:**
-- URL: http://my-app.localhost
-
-## Verify the Deployment
-
-Check that all resources are running:
-
-```bash
-# Check Argo CD
-kubectl get pods -n argocd
-
-# Check your application
-kubectl get pods -n dev
-kubectl get svc -n dev
-kubectl get ingress -n dev
-
-# Check Argo CD Application status
-kubectl get application -n argocd
-```
-
-In the Argo CD UI, you should see your application synced and healthy.
-
-## How Requests Travel Through the System
-
-### For the Application (my-app.localhost)
-
-1. **Client** makes a request to `my-app.localhost`
-2. **Traefik Ingress Controller** receives the request on port 80
-3. Ingress matches the host `my-app.localhost` and routes to the `my-app-service` Service
-4. The **Service** (ClusterIP) load-balances to one of the **Pods**
-5. The **Pod** (Nginx container) serves the HTML content
-
-### For Argo CD (argocd.localhost)
-
-1. **Client** makes a request to `argocd.localhost`
-2. **Traefik Ingress Controller** receives the request on port 80
-3. Ingress matches the host `argocd.localhost` and routes to the `argocd-server` Service
-4. The **Service** forwards to the **argocd-server** Pod
-5. The **Argo CD server** serves the web UI
-
-## GitOps in Action
-
-Once deployed, Argo CD continuously monitors your Git repository:
-
-- Any changes to manifests in `p3/k8s` on the `deploy` branch are automatically detected
-- Argo CD syncs the changes to the cluster (if `automated` sync is enabled)
-- The application is updated without manual intervention
-
-To test this:
-1. Update `deployment.yml` in your Git repository (e.g., change image tag)
-2. Commit and push to the `deploy` branch
-3. Watch Argo CD automatically sync the changes
-
-## Cleanup
-
-To destroy the cluster:
-
-```bash
-k3d cluster delete iot-cluster
-```
-
-## Kubernetes Best Practices Followed
-
-This setup demonstrates several Kubernetes best practices:
-
-1. **Namespace Isolation**: Argo CD and the application run in separate namespaces
-2. **GitOps**: Application state is version-controlled and declaratively managed
-3. **Ingress for Routing**: Standard way to expose HTTP services
-4. **Resource Limits**: Pods have memory and CPU limits defined
-5. **ClusterIP Services**: Internal services use ClusterIP (not NodePort)
-6. **Automated Sync**: Argo CD keeps the cluster in sync with Git
-7. **Self-Healing**: Argo CD automatically corrects drift
-
-This setup is compliant with the Inception of Things subject requirements while following production-grade Kubernetes patterns.
-
-## Troubleshooting
-
-### Argo CD UI Not Accessible
-- Verify Ingress: `kubectl get ingress -n argocd`
-- Check Argo CD pods: `kubectl get pods -n argocd`
-- Verify `/etc/hosts` entry for `argocd.localhost`
-
-### Application Not Accessible
-- Check Argo CD Application status: `kubectl get application -n argocd`
-- Verify application pods: `kubectl get pods -n dev`
-- Check Ingress: `kubectl get ingress -n dev`
-
-### Application Not Syncing
-- Check Argo CD logs: `kubectl logs -n argocd deployment/argocd-server`
-- Verify Git repository URL and branch in `argocd-app.yml`
-- Ensure the `deploy` branch exists and contains the manifests
-
-## References
-
-- [Argo CD Documentation](https://argo-cd.readthedocs.io/)
-- [k3d Documentation](https://k3d.io/)
-- [Traefik Documentation](https://doc.traefik.io/traefik/)
-- [Kubernetes Ingress](https://kubernetes.io/docs/concepts/services-networking/ingress/)
-- [GitOps Principles](https://www.gitops.tech/)
-
-
-# cluster
-```bash
-k3d cluster create iot-p3 -p "80:80@loadbalancer"
-```
-# argocd
-```bash
-kubectl create namespace argocd
 kubectl apply -n argocd \
   -f https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/install.yaml
 
-kubectl apply -f k8s/namespaces.yml
-kubectl apply -f k8s/ingress-argocd.yml
-kubectl apply -f k8s/argocd-app.yml
+kubectl wait --for=condition=available --timeout=300s \
+  deployment/argocd-server -n argocd
+
+kubectl patch configmap argocd-cmd-params-cm -n argocd \
+  --type merge -p '{"data":{"server.insecure":"true"}}'
+
+kubectl rollout restart deployment/argocd-server -n argocd
 ```
+
+#### 5. Apply Ingress Routes
+
+```bash
+kubectl apply -f confs/ingress-argocd.yml
+kubectl apply -f confs/ingress-gitlab.yml
+```
+
+#### 6. Configure GitLab
+
+Get the GitLab root password:
+
+```bash
+kubectl get secret gitlab-gitlab-initial-root-password \
+  -n gitlab -o jsonpath="{.data.password}" | base64 --decode && echo
+```
+
+1. Access GitLab at `http://gitlab.localhost`
+2. Login as `root` with the password above
+3. Create a new project (e.g., `iot-app`)
+4. Push the application manifests (`deployment.yml`, `service.yml`, `ingress.yml`) to the project
+
+#### 7. Apply ArgoCD Application
+
+Update `confs/argocd-app.yml` with your GitLab repo URL, then:
+
+```bash
+kubectl apply -f confs/argocd-app.yml
+```
+
+## GitLab Helm Values
+
+The `confs/values.yml` configures GitLab CE with minimal resource usage:
+
+- **Community Edition** (`global.edition: ce`)
+- **HTTP only** (no TLS for local development)
+- **Disabled components**: cert-manager, nginx-ingress (Traefik used instead), registry, Prometheus, GitLab Runner
+- **Enabled components**: webservice, Sidekiq, GitLab Shell, PostgreSQL, Redis
+
+## Credentials
+
+| Service | Username | Password Command |
+|---------|----------|-----------------|
+| **Argo CD** | `admin` | `kubectl -n argocd get secret argocd-initial-admin-secret -o jsonpath="{.data.password}" \| base64 --decode` |
+| **GitLab** | `root` | `kubectl get secret gitlab-gitlab-initial-root-password -n gitlab -o jsonpath="{.data.password}" \| base64 --decode` |
+
+## Verifying the Setup
+
+```bash
+# Check all three namespaces
+kubectl get ns
+
+# Check GitLab pods
+kubectl get pods -n gitlab
+
+# Check Argo CD
+kubectl get pods -n argocd
+
+# Check application
+kubectl get pods -n dev
+
+# Check all Ingress routes
+kubectl get ingress --all-namespaces
+```
+
+## Version Change Demo (v1 → v2)
+
+1. In GitLab, edit `deployment.yml` and change `image: bsouhar/my-app:v1` to `image: bsouhar/my-app:v2`
+2. Commit the change
+3. Argo CD will detect the change and auto-sync
+4. Verify: `curl http://my-app.localhost`
+
+## Cleanup
+
+```bash
+k3d cluster delete iot-bonus
+```
+
+## Differences from Part 3
+
+| Feature | Part 3 | Bonus |
+|---------|--------|-------|
+| Git source | GitHub (remote) | GitLab (local, in-cluster) |
+| Extra namespace | — | `gitlab` |
+| Helm | Not used | Used for GitLab deployment |
+| Self-contained | No (depends on GitHub) | Yes (everything local) |
+
+## Troubleshooting
+
+### GitLab pods stuck in Pending/CrashLoopBackOff
+- GitLab needs significant resources. Ensure at least 8GB RAM available.
+- Check events: `kubectl describe pods -n gitlab`
+
+### Argo CD can't reach GitLab
+- Verify GitLab service is reachable from within the cluster:
+  ```bash
+  kubectl run test --rm -it --image=curlimages/curl -- \
+    curl -s http://gitlab-webservice-default.gitlab.svc.cluster.local:8181
+  ```
+
+### Application not syncing
+- Check ArgoCD app status: `kubectl get application -n argocd`
+- Check ArgoCD logs: `kubectl logs -n argocd deployment/argocd-server`
+
+## References
+
+- [GitLab Helm Chart](https://docs.gitlab.com/charts/)
+- [Argo CD Documentation](https://argo-cd.readthedocs.io/)
+- [k3d Documentation](https://k3d.io/)

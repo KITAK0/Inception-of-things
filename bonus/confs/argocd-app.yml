@@ -6,9 +6,9 @@ metadata:
 spec:
   project: default
   source:
-    repoURL: http://gitlab.gitlab.svc.cluster.local/0xkitak0/0xPaprika-of-things.git
+    repoURL: http://gitlab-webservice-default.gitlab.svc.cluster.local:8181/root/iot-app.git
     targetRevision: main
-    path: p3/k8s
+    path: confs
   destination:
     server: https://kubernetes.default.svc
     namespace: dev

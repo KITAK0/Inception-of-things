@@ -10,8 +10,8 @@ Part 2 demonstrates deploying multiple web applications on a Kubernetes cluster 
 p2/
 ├── Vagrantfile                # VM setup for the cluster
 ├── scripts/
-│   └── server.sh              # K3s installation script
-└── k3s-deploy/
+│   └── server.sh              # K3s installation + auto-deploy script
+└── confs/
 		├── app1.yaml              # Deployment, Service, ConfigMap for App 1
 		├── app2.yaml              # Deployment, Service, ConfigMap for App 2
 		├── app3.yaml              # Deployment, Service, ConfigMap for App 3
@@ -51,8 +51,11 @@ vagrant ssh
 ```
 
 ### 3. Deploy the Applications and Ingress
+
+The applications are automatically deployed during provisioning by `server.sh`.
+If you need to re-apply manually:
 ```bash
-cd /vagrant/k3s-deploy
+cd /vagrant/confs
 kubectl apply -f app1.yaml
 kubectl apply -f app2.yaml
 kubectl apply -f app3.yaml
