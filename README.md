@@ -109,3 +109,5 @@ chmod +x scripts/setup.sh
 ## Authors
 
 - **bsouhar**
+- **akheired**
+- **atoukmat**
