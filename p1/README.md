@@ -38,8 +38,8 @@ p1/
 
 ### Vagrantfile
 The `Vagrantfile` defines two virtual machines:
-- **bsouharS** (Server): IP `192.168.56.110`, runs K3s server
-- **bsouharSW** (Worker): IP `192.168.56.111`, joins the K3s cluster
+- **akheiredS** (Server): IP `192.168.56.110`, runs K3s server
+- **akheiredSW** (Worker): IP `192.168.56.111`, joins the K3s cluster
 
 Both VMs use Debian Bullseye with 1GB RAM and 1 CPU.
 
@@ -79,18 +79,18 @@ Once setup is complete, you can SSH into the machines:
 
 **Access the Server Node:**
 ```bash
-vagrant ssh bsouharS
+vagrant ssh akheiredS
 ```
 
 **Access the Worker Node:**
 ```bash
-vagrant ssh bsouharSW
+vagrant ssh akheiredSW
 ```
 
 ### Step 4: Verify the Cluster
 SSH into the server node and check the cluster status:
 ```bash
-vagrant ssh bsouharS
+vagrant ssh akheiredS
 kubectl get nodes -o wide
 ```
 
